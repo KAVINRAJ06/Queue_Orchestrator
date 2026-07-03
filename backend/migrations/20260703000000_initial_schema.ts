@@ -45,7 +45,7 @@ export async function up(knex: Knex): Promise<void> {
     t.specificType("strategy", "retry_strategy").notNullable().defaultTo("exponential");
     t.integer("max_attempts").notNullable().defaultTo(3);
     t.integer("base_delay_ms").notNullable().defaultTo(5000);
-    t.numeric("multiplier").notNullable().defaultTo(2);
+    t.decimal("multiplier", 10, 2).notNullable().defaultTo(2);
     t.integer("max_delay_ms").notNullable().defaultTo(60000);
     t.timestamps(true, true);
   });
