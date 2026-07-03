@@ -83,6 +83,15 @@ npm test
 - Dead Letter Queue: exhausted jobs move to `dead_letter_queue` and can be manually requeued.
 - Auditability: every lifecycle transition is stored in `job_transitions`; attempts are stored in `job_executions`; logs are stored in `job_logs`.
 
+## Queue Settings
+
+The dashboard queue settings modal edits the same production queue configuration used by the worker:
+
+- `priority`: numeric polling priority; higher values are claimed first.
+- `concurrencyLimit`: maximum active jobs for the queue.
+- `retryPolicy.strategy`: fixed, linear, or exponential backoff.
+- `retryPolicy.maxAttempts`, `delayMs`, and `maxDelayMs`: retry attempt and delay controls.
+
 ## Job Lifecycle
 
 ```text

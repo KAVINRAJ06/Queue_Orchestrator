@@ -32,25 +32,11 @@ type QueueRow = {
   };
 };
 
-const priorityOptions = [
-  { label: "Low", value: -10 },
-  { label: "Normal", value: 0 },
-  { label: "High", value: 50 },
-  { label: "Critical", value: 100 },
-];
-
 const retryOptions = [
   { label: "Exponential backoff", value: "exponential" },
   { label: "Linear backoff", value: "linear" },
   { label: "Fixed delay", value: "fixed" },
 ] satisfies Array<{ label: string; value: QueueRow["retryPolicy"]["strategy"] }>;
-
-function priorityLabel(value: number) {
-  if (value >= 100) return "Critical";
-  if (value >= 50) return "High";
-  if (value < 0) return "Low";
-  return "Normal";
-}
 
 export function QueuesView() {
   const { current } = useCurrentProject();
@@ -143,56 +129,42 @@ export function QueuesView() {
       </div>
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[380px] gap-0 rounded-[14px] border-[#434340] bg-[#2d2d2a] px-6 py-7 text-[#f8f7f2] shadow-2xl sm:max-w-[380px]">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-[512px] gap-0 rounded-[12px] border border-[#dad8d0] bg-[#faf8f1] px-6 py-6 text-[#181713] shadow-2xl sm:max-w-[512px]">
           <DialogHeader className="mb-5">
-            <DialogTitle className="text-left text-[26px] font-extrabold leading-none tracking-normal text-white">Queue settings</DialogTitle>
+            <DialogTitle className="text-left text-lg font-semibold leading-none tracking-normal text-[#171612]">Queue settings</DialogTitle>
           </DialogHeader>
           {editing && (
-            <div className="grid gap-4">
-              <Field label="Priority" hint="Higher priority queues are polled first.">
-                <NativeSelect
-                  value={priorityLabel(editing.priority)}
-                  onChange={(value) => {
-                    const option = priorityOptions.find((item) => item.label === value);
-                    setEditing({ ...editing, priority: option?.value ?? 0 });
-                  }}
-                >
-                  {priorityOptions.map((option) => (
-                    <option key={option.label} value={option.label}>{option.label}</option>
-                  ))}
-                </NativeSelect>
+            <div className="grid gap-5">
+              <Field label="Priority">
+                <SettingsInput type="number" value={editing.priority} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} autoFocus />
               </Field>
-              <Field label="Concurrency limit" hint="Max jobs running at once, 1 to 100.">
+              <Field label="Concurrency limit">
                 <SettingsInput type="number" min={1} max={100} value={editing.concurrencyLimit} onChange={(e) => setEditing({ ...editing, concurrencyLimit: Number(e.target.value) })} />
               </Field>
-              <div className="rounded-[12px] bg-[#191917] p-4">
-                <Field label="Retry strategy" compact>
-                  <NativeSelect
+              <div className="space-y-5">
+                <Field label="Retry strategy">
+                  <SettingsSelect
                     value={editing.retryPolicy.strategy}
                     onChange={(strategy) => setEditing({ ...editing, retryPolicy: { ...editing.retryPolicy, strategy: strategy as QueueRow["retryPolicy"]["strategy"] } })}
-                  >
-                    {retryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </NativeSelect>
+                  />
                 </Field>
-                <div className="mt-4 grid grid-cols-3 gap-2.5">
-                  <Field label="Max attempts" compact>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Field label="Max attempts">
                     <SettingsInput type="number" min={1} max={20} value={editing.retryPolicy.maxAttempts} onChange={(e) => setEditing({ ...editing, retryPolicy: { ...editing.retryPolicy, maxAttempts: Number(e.target.value) } })} />
                   </Field>
-                  <Field label="Delay" compact suffix="ms">
+                  <Field label="Delay ms">
                     <SettingsInput type="number" min={0} value={editing.retryPolicy.delayMs} onChange={(e) => setEditing({ ...editing, retryPolicy: { ...editing.retryPolicy, delayMs: Number(e.target.value) } })} />
                   </Field>
-                  <Field label="Cap" compact suffix="ms">
+                  <Field label="Cap ms">
                     <SettingsInput type="number" min={0} value={editing.retryPolicy.maxDelayMs} onChange={(e) => setEditing({ ...editing, retryPolicy: { ...editing.retryPolicy, maxDelayMs: Number(e.target.value) } })} />
                   </Field>
                 </div>
               </div>
             </div>
           )}
-          <DialogFooter className="mt-5 flex-row justify-end gap-2 space-x-0">
-            <Button className="h-10 rounded-[9px] border border-[#575753] bg-transparent px-5 text-sm font-semibold text-white hover:bg-[#383834]" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button className="h-10 rounded-[9px] bg-[#f8f8f6] px-5 text-sm font-semibold text-[#111] hover:bg-white" onClick={() => editing && update.mutate(editing)} disabled={!editing || update.isPending}>
+          <DialogFooter className="mt-4 flex-row justify-end gap-2 space-x-0">
+            <Button className="h-9 rounded-[10px] border border-[#e3e0d8] bg-[#fbfaf5] px-4 text-sm font-semibold text-[#111] shadow-sm hover:bg-white" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button className="h-9 rounded-[10px] bg-[#07080b] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#17181d]" onClick={() => editing && update.mutate(editing)} disabled={!editing || update.isPending}>
               {update.isPending ? "Saving..." : "Save settings"}
             </Button>
           </DialogFooter>
@@ -211,27 +183,27 @@ function QueueStat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Field({ label, hint, suffix, compact = false, children }: { label: string; hint?: string; suffix?: string; compact?: boolean; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className={compact ? "space-y-1.5" : "space-y-2"}>
-      <Label className={compact ? "text-xs font-semibold text-[#c8c5bd]" : "text-sm font-semibold text-[#c8c5bd]"}>{label}</Label>
+    <div className="space-y-1.5">
+      <Label className="text-sm font-semibold text-[#1d1b16]">{label}</Label>
       <div className="relative">
         {children}
-        {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#a19e98]">{suffix}</span>}
       </div>
-      {hint && <p className="text-xs font-medium leading-none text-[#8f8c86]">{hint}</p>}
     </div>
   );
 }
 
-function NativeSelect({ value, onChange, children }: { value: string; onChange: (value: string) => void; children: React.ReactNode }) {
+function SettingsSelect({ value, onChange }: { value: QueueRow["retryPolicy"]["strategy"]; onChange: (value: string) => void }) {
   return (
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-9 w-full appearance-auto rounded-[7px] border border-[#484844] bg-[#2d2d2a] px-3 text-sm font-bold text-white outline-none transition focus:border-[#1f6feb] focus:ring-1 focus:ring-[#1f6feb]"
+      className="h-9 w-full appearance-auto rounded-[12px] border border-[#e4e1d9] bg-[#fbfaf5] px-3 text-sm text-[#171612] shadow-sm outline-none transition focus:border-[#b8c1d1] focus:ring-2 focus:ring-[#d9e2f2]"
     >
-      {children}
+      {retryOptions.map((option) => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
     </select>
   );
 }
@@ -240,7 +212,7 @@ function SettingsInput(props: React.ComponentProps<typeof Input>) {
   return (
     <Input
       {...props}
-      className="h-9 rounded-[7px] border-[#484844] bg-[#2d2d2a] px-3 text-base font-semibold text-white outline-none ring-offset-0 placeholder:text-[#8f8c86] focus-visible:ring-1 focus-visible:ring-[#1f6feb] focus-visible:ring-offset-0"
+      className="h-9 rounded-[12px] border-[#e4e1d9] bg-[#fbfaf5] px-3 text-sm text-[#171612] shadow-sm outline-none ring-offset-0 placeholder:text-[#8b887f] focus-visible:border-[#b8c1d1] focus-visible:ring-2 focus-visible:ring-[#d9e2f2] focus-visible:ring-offset-0"
     />
   );
 }
